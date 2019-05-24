@@ -1,11 +1,26 @@
 import numpy as np
-
+import sys
 #Função de ativação
 def sigmoid(x):
     return 1/(1+np.exp(-x))
 #Derivada sigmoid
 def sigmoid_dx(x):
     return sigmoid(x)*(1-sigmoid(x))
+
+def int2bin(x):
+    b = []
+    for i in range(3,-1,-1):
+        b.append(x//2**i)
+        x = x%(2**i)
+    return b
+
+def bin2int(x):
+    out = 0
+    power = len(x)-1
+    for i in x:
+        out += np.round(i)*2**power
+        power -= 1
+    return out
 
 class RNN_Elman(object):
     """docstring for RNN."""
@@ -15,7 +30,7 @@ class RNN_Elman(object):
         np.random.seed(random_state)
         self.layers = None #output de cada layer
         self.nlayers = 0
-        self.n_neurons = []
+        self.n_neurons = [] #Qtd neuronios na camada i
         self.weights = None #Matriz de pesos das ligações entre camadas
         self.flag = {'in':False, 'hidden':False, 'out':False}
         self.context = None
@@ -90,18 +105,24 @@ class RNN_Elman(object):
                 for xs, ys in zip(x,y): #Pegando o xs e o ys de um indivíduo
                     self.context = np.zeros(self.n_neurons[1]) #Resetando o context para cada indivíduos
                     for pos in range(0, len(xs), self.input_size): #Iterando sobre o xs do indivíduo
-                        out = self._foward(xs[pos:pos+self.input_size], self.context)
-                        error = ys[pos:pos+self.input_size]-out
-                        total_error += (error**2)
+                        out = self._foward(xs[pos], self.context)
+                        error = ys[pos]-out
+                        total_error += (error**2).sum()
                         #Backpropagation slide aula mlp hopfield
                         #Back output to hidden
                         grad_k = [out[k]*(1-out[k])*error[k] for k in range(len(out))]
+                        #grad_k = [sigmoid(out[k]*sigmoid_dx(out[k])) for k in range(len(out))]
                         delta_jk = np.zeros((len(self.layers[1]),len(grad_k)))
-                        for k in range(len(grad_k)):
+                        print(self.layers[1].shape)
+                        print(self.weights[1].shape)
+                        delta_jk = np.dot(self.layers[1], grad_k)
+                        '''for k in range(len(grad_k)):
                             for j in range(len(self.layers[1])):
                                 delta_jk[j][k] = self.lr*self.layers[1][j]*grad_k[k]
                                 self.weights[1][j][k] += delta_jk[j][k]
-
+                        '''
+                        #print(delta_jk)
+                        sys.exit(0)
                         #Back hidden to input
                         grad_j =[]
                         for j in range(len(self.layers[1])):
